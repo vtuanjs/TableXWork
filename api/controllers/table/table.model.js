@@ -1,0 +1,57 @@
+const mongoose = require('mongoose')
+const Schema = mongoose.Schema
+const ObjectId = mongoose.Schema.Types.ObjectId
+
+const TableSchema = new Schema({
+    title: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        default: " "
+    },
+    isStored: {
+        type: Number,
+        default: 0
+    },
+    isDeleted: {
+        type: Number,
+        default: 0
+    },
+    allowed: {
+        isAllowMemberAddMember: {
+            type: Number,
+            default: 1
+        }
+    },
+    author: {
+        type: ObjectId,
+        ref: 'User'
+    }
+}, {
+    timestamps: true,
+    autoCreate: true
+})
+
+TableSchema.pre('deleteOne', function (next) {
+    const _id = this.getQuery()["_id"]
+    mongoose.model("User").updateMany({
+        'tables._id': _id
+    }, {
+        $pull: {
+            tables: {
+                _id: _id
+            }
+        }
+    }, function (err, result) {
+        if (err) {
+            next(err)
+        } else {
+            next()
+        }
+    })
+})
+
+const Table = mongoose.model("Table", TableSchema)
+module.exports = Table
