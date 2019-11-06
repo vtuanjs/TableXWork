@@ -13,12 +13,10 @@ module.exports.postUser = async (req, res, next) => {
             throw "Password must be eight characters or longer, must contain at least 1 numeric character, 1 lowercase charater"
         }
 
-        const encryptedPwd = await encryptedPassword(password)
-
         const user = await User.create({
             name,
             email,
-            password: encryptedPwd
+            password
         })
 
         return res.json({
@@ -40,13 +38,6 @@ const validatePassword = (password) => {
     return password.match(pwdRegex)
 }
 
-/**
- * @param {string} password 
- */
-const encryptedPassword = (password) => {
-    return bcrypt.hash(password, 10) //saltRounds = 10
-}
-
 module.exports.postAdmin = async (req, res, next) => {
     const {
         name,
@@ -61,13 +52,11 @@ module.exports.postAdmin = async (req, res, next) => {
             throw "Password must be eight characters or longer, must contain at least 1 numeric character, 1 lowercase charater"
         }
 
-        const encryptedPwd = await encryptedPassword(password)
-
         const user = await User.create({
             name,
             email,
             role: "admin",
-            password: encryptedPwd
+            password
         })
 
         return res.json({
@@ -104,7 +93,6 @@ module.exports.updateUser = async (req, res, next) => {
             }
 
             await comparePassword(oldPassword, user.password)
-            password = await encryptedPassword(password)
         }
 
         const query = {
@@ -238,7 +226,7 @@ module.exports.deleteUser = async (req, res, next) => {
  * @param {string} fields 
  */
 const selectFieldsShow = fields => {
-    if (fields){
+    if (fields) {
         return fields.split(',').join(' ').replace('password', '')
     } else {
         return '-password'
@@ -270,35 +258,36 @@ module.exports.getUser = async (req, res, next) => {
  * @param {string} email 
  * @param {string} fields 
  */
-const getByEmail = (email, fields) => {
-    return async (res, next) => {
-        try {
-            const emailFormated = email.trim().toLowerCase()
+module.exports.getByEmail = async (req, res, next) => {
+    const { email } = req.params
+    const { fields } = req.query
+    const selectFields = selectFieldsShow(fields)
+    try {
+        const emailFormated = email.trim().toLowerCase()
 
-            const foundUser = await User
-                .findOne({
-                    email: emailFormated
-                }).select(fields)
+        const foundUser = await User
+            .findOne({
+                email: emailFormated
+            }).select(selectFields)
 
-            if (!foundUser) throw "Can not find user with email"
+        if (!foundUser) throw "Can not find user with email"
 
-            return res.json({
-                user: foundUser
-            })
-        } catch (error) {
-            next(error)
-        }
+        return res.json({
+            user: foundUser
+        })
+    } catch (error) {
+        next(error)
     }
 }
 
 module.exports.getUsers = async (req, res, next) => {
-    let { email, fields } = req.query
+    let { fields } = req.query
 
     const selectFields = selectFieldsShow(fields)
 
-    if (email) {
-        return getByEmail(email, selectFields)(res, next)
-    }
+    // if (email) {
+    //     return getByEmail(email, selectFields)(res, next)
+    // }
 
     try {
         let foundUsers = await User.find().select("name email createdAt")
@@ -311,6 +300,27 @@ module.exports.getUsers = async (req, res, next) => {
 
         return res.json({
             users: foundUsers
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+module.exports.changeUserRole = async (req, res, next) => {
+    let userId = req.params.userId
+    let role = req.query.role
+    try {
+        const user = await User.findByIdAndUpdate(userId, {
+            role
+        }, {
+            new: true
+        }).select('name role')
+
+        if (!user) throw 'Can not find user with this Id'
+
+        return res.json({
+            message: `${user.name} is now ${role}`,
+            user
         })
     } catch (error) {
         next(error)

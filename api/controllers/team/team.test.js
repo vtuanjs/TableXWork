@@ -69,7 +69,9 @@ describe('POST /teams', () => {
 
 describe('GET /teams', () => {
     it('OK, get team', done => {
-        request(app).get('/teams').then(res => {
+        request(app).get('/teams').set({
+            'x-access-token': owner.tokenKey
+        }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
             expect(body).to.contain.property('teams')
@@ -130,7 +132,7 @@ describe('PREPARE ADD MEMBER TO JOB', () => {
         }).catch(error => done(error))
     })
     it('Get userId will add to team', done => {
-        request(app).get('/users?email=' + "ngocancsdl@gmail.com").then(res => {
+        request(app).get('/users/email/' + "ngocancsdl@gmail.com").then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
             expect(body).to.contain.property('user')

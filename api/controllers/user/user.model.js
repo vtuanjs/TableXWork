@@ -1,7 +1,8 @@
 'use strict'
 const mongoose = require('mongoose')
+const bcrypt = require('bcrypt')
 const Schema = mongoose.Schema
-const ObjectId = mongoose.Schema.Types.ObjectId
+const ObjectId = Schema.Types.ObjectId
 
 const UserSchema = new Schema({
     email: {
@@ -36,7 +37,7 @@ const UserSchema = new Schema({
     role: {
         type: String,
         default: "user"
-    }, //admin, user
+    }, //admin, mod, user
     score: {
         type: Number,
         default: 0
@@ -63,19 +64,14 @@ const UserSchema = new Schema({
             default: 0
         },
     }],
-    
-    jobs: [{
+    cells: [{
         _id: {
             type: ObjectId,
-            ref: "Job"
+            ref: "Cell"
         },
         role: {
             type: String,
             default: "user"
-        },
-        isJoined: {
-            type: Number,
-            default: 0
         },
     }],
     teams: [{
@@ -102,6 +98,18 @@ const UserSchema = new Schema({
 }, {
     timestamps: true,
     autoCreate: true
+})
+
+UserSchema.pre('save', function (next) {
+    const user = this
+    // only hash the password if it has been modified (or is new)
+    if (!user.isModified('password')) return next()
+
+    bcrypt.hash(user.password, 10, (error, encrypted) => {
+        if (error) return next(error)
+        user.password = encrypted
+        next()
+    })
 })
 
 const User = mongoose.model('User', UserSchema)

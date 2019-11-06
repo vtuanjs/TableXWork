@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId
 
-const RowSchema = new Schema({
+const ColumnSchema = new Schema({
     title: {
         type: String,
         required: true
@@ -24,5 +24,5 @@ const RowSchema = new Schema({
     autoCreate: true
 })
 
-const Row = mongoose.model("Row", RowSchema)
-module.exports = Row
+const Column = mongoose.model("Column", ColumnSchema)
+module.exports = Column

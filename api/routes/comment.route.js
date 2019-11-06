@@ -1,40 +1,28 @@
 const express = require("express")
-const router = express.Router()
+const router = express.Router({ mergeParams: true })
 const comment = require("../controllers/comment")
 const authentication = require("../middlewares/auth")
 const checkPermit = require("../middlewares/permistion")
 
-router.post('/',
-    authentication.required, checkPermit({
-        model: 'job',
-        role: 'user',
-        source: 'query'
-    }),
-    comment.postComment
-)
+router.use(authentication.required)
 
-router.put('/:commentId',
-    authentication.required,
-    comment.updateComment
-)
+router.post('/', checkPermit({
+    model: 'cell',
+    roles: 'user'
+}), comment.postComment)
 
-router.delete('/:commentId',
-    authentication.required,
-    comment.deleteComment
-)
+router.put('/:commentId', comment.updateComment)
 
-router.get('/',
-    authentication.required, checkPermit({
-        model: 'job',
-        role: 'user',
-        source: 'query'
-    }),
-    comment.getComments
-)
+router.delete('/:commentId', comment.deleteComment)
 
-router.get('/:commentId',
-    authentication.required,
-    comment.getComment
-)
+router.get('/', checkPermit({
+    model: 'cell',
+    roles: 'user',
+}), comment.getComments)
+
+router.get('/:commentId', checkPermit({
+    model: 'cell',
+    roles: 'user'
+}), comment.getComment)
 
 module.exports = router

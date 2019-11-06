@@ -1,8 +1,8 @@
-const Row = require('./row.model')
+const Column = require('./column.model')
 const redis = require('../../helpers/redis')
 const redisLife = parseInt(process.env.REDIS_QUERY_LIFE)
 
-module.exports.postRow = async (req, res, next) => {
+module.exports.postColumn = async (req, res, next) => {
     const {
         title,
         description,
@@ -10,7 +10,7 @@ module.exports.postRow = async (req, res, next) => {
     const tableId = req.params.tableId
     const signedInUser = req.user
     try {
-        const row = await Row.create({
+        const column = await Column.create({
             title,
             description,
             author: signedInUser._id,
@@ -18,26 +18,26 @@ module.exports.postRow = async (req, res, next) => {
         })
 
         return res.json({
-            message: `Create row successfully!`,
-            row
+            message: `Create column successfully!`,
+            column
         })
     } catch (error) {
         next(error)
     }
 }
 
-module.exports.getRows = async (req, res, next) => {
+module.exports.getColumns = async (req, res, next) => {
     const { fields } = req.query
     const { tableId } = req.params
 
     const selectFields = selectFieldsShow(fields)
     try {
-        const rows = await Row.find({
+        const columns = await Column.find({
             table: tableId,
         }).select(selectFields)
 
         return res.json({
-            rows
+            columns
         })
     } catch (error) {
         next(error)
@@ -56,28 +56,28 @@ const selectFieldsShow = fields => {
     return ""
 }
 
-module.exports.getRow = async (req, res, next) => {
-    const { rowId, tableId } = req.params
+module.exports.getColumn = async (req, res, next) => {
+    const { columnId, tableId } = req.params
     const fields = req.query.fields
 
     const selectFields = selectFieldsShow(fields)
     try {
-        const store = await redis.get(rowId)
+        const store = await redis.get(columnId)
 
         if (store) {
-            res.json({ row: JSON.parse(store) })
+            res.json({ column: JSON.parse(store) })
         } else {
-            const row = await Row.findOne({
-                _id: rowId,
+            const column = await Column.findOne({
+                _id: columnId,
                 table: tableId
             }).select(selectFields)
 
-            if (!row) throw "Wrong row id"
+            if (!column) throw "Wrong column id"
 
-            await redis.setex(rowId, redisLife, JSON.stringify(row))
+            await redis.setex(columnId, redisLife, JSON.stringify(column))
 
             return res.json({
-                row
+                column
             })
         }
     } catch (error) {
@@ -85,19 +85,19 @@ module.exports.getRow = async (req, res, next) => {
     }
 }
 
-module.exports.deleteRow = async (req, res, next) => {
-    const { rowId, tableId } = req.params
+module.exports.deleteColumn = async (req, res, next) => {
+    const { columnId, tableId } = req.params
 
     try {
-        const raw = await Row.deleteOne({
-            _id: rowId,
+        const raw = await Column.deleteOne({
+            _id: columnId,
             table: tableId
         })
 
-        await redis.del(rowId)
+        await redis.del(columnId)
 
         return res.json({
-            message: "Delete row successfully!",
+            message: "Delete column successfully!",
             raw
         })
     } catch (error) {
@@ -105,15 +105,15 @@ module.exports.deleteRow = async (req, res, next) => {
     }
 }
 
-module.exports.updateRow = async (req, res, next) => {
-    const { rowId, tableId } = req.params
+module.exports.updateColumn = async (req, res, next) => {
+    const {columnId, tableId} = req.params
     const {
         title,
         description,
     } = req.body
     try {
-        const row = await Row.findOneAndUpdate({
-            _id: rowId,
+        const column = await Column.findOneAndUpdate({
+            _id: columnId,
             table: tableId
         }, {
             ...(title && { title }),
@@ -122,13 +122,13 @@ module.exports.updateRow = async (req, res, next) => {
             new: true
         })
 
-        if (!row) throw "Can not find row with this ID"
+        if (!column) throw "Can not find column with this ID"
 
-        await redis.setex(rowId, redisLife, JSON.stringify(row))
+        await redis.setex(columnId, redisLife, JSON.stringify(column))
 
         return res.json({
-            message: `Update row successfully!`,
-            row
+            message: `Update column successfully!`,
+            column
         })
     } catch (error) {
         next(error)

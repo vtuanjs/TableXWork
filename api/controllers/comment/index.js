@@ -3,12 +3,12 @@ const redis = require('../../helpers/redis')
 
 module.exports.postComment = async (req, res, next) => {
     const { body } = req.body
-    const { jobId } = req.query
+    const { cellId } = req.params
     const signedInUser = req.user
     try {
         const comment = await Comment.create({
             body,
-            commentOn: jobId,
+            commentOn: cellId,
             author: signedInUser._id
         })
 
@@ -27,7 +27,7 @@ module.exports.deleteComment = async (req, res, next) => {
             author: signedInUser._id
         })
 
-        if (raw.ok != 1) {
+        if (!raw.ok) {
             throw 'Can not delete this comment'
         }
 
@@ -71,11 +71,11 @@ module.exports.updateComment = async (req, res, next) => {
 }
 
 module.exports.getComments = async (req, res, next) => {
-    const { jobId } = req.query
+    const { cellId } = req.params
 
     try {
         const comments = await Comment.find({
-            commentOn: jobId
+            commentOn: cellId
         }, "body commentOn createdAt")
             .populate('author', 'name')
 

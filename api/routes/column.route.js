@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router({mergeParams: true})
-const row = require("../controllers/row")
+const column = require("../controllers/column")
 const authentication = require("../middlewares/auth")
 const checkPermit = require("../middlewares/permistion")
 
@@ -9,26 +9,26 @@ router.use(authentication.required)
 router.post("/", checkPermit({
     model: 'table',
     roles: 'admin'
-}), row.postRow)
+}), column.postColumn)
 
 router.get("/", checkPermit({
     model: 'table',
     roles: 'user'
-}), row.getRows)
+}), column.getColumns)
 
-router.get("/:rowId", checkPermit({
+router.get("/:columnId", checkPermit({
     model: 'table',
     roles: 'user'
-}), row.getRow)
+}), column.getColumn)
 
-router.delete("/:rowId", checkPermit({
+router.delete("/:columnId", checkPermit({
     model: 'table',
     roles: 'admin'
-}), row.deleteRow)
+}), column.deleteColumn)
 
-router.put("/:rowId", checkPermit({
+router.put("/:columnId", checkPermit({
     model: 'table',
     roles: 'admin'
-}), row.updateRow)
+}), column.updateColumn)
 
 module.exports = router

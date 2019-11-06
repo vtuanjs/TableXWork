@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
-const ObjectId = mongoose.Schema.Types.ObjectId
+const ObjectId = Schema.Types.ObjectId
 
 const CommentSchema = new Schema({
     body: {type: String, default: ""},
@@ -10,7 +10,7 @@ const CommentSchema = new Schema({
         _id: false
     }],
     author: { type: ObjectId, ref: "User" },
-    commentOn: { type: ObjectId, ref: 'Job' },
+    commentOn: { type: ObjectId, ref: 'Cell' },
 }, {timestamps: true, autoCreate: true})
 
 CommentSchema.pre('deleteOne', function (next) {

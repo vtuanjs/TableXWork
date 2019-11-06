@@ -4,7 +4,7 @@ const request = require('supertest')
 const app = require('../../../app')
 
 let admin  // Save token key after login
-let user
+let normalUser
 let listUsers // Use to update, delete this userId
 
 describe('POST /users', () => {
@@ -89,20 +89,6 @@ describe('POST /users', () => {
             expect(body).to.contain.property('user')
             expect(body.user.name).to.equals('Tran Phu')
             expect(body.user.email).to.equals('phu.tran@amavi.asia')
-            done()
-        }).catch((error) => done(error))
-    })
-    it('OK, create new user with email giang.nguyen@amavi.asia', done => {
-        request(app).post('/users').send({
-            name: 'Nguyen Giang',
-            email: 'giang.nguyen@amavi.asia',
-            password: '12345678c'
-        }).then(res => {
-            const body = res.body
-            expect(res.statusCode).to.equals(200)
-            expect(body).to.contain.property('user')
-            expect(body.user.name).to.equals('Nguyen Giang')
-            expect(body.user.email).to.equals('giang.nguyen@amavi.asia')
             done()
         }).catch((error) => done(error))
     })
@@ -199,44 +185,6 @@ describe('POST /users', () => {
     })
 })
 
-describe('GET /users', () => {
-    it('OK, get list users', done => {
-        request(app).get('/users').then(res => {
-            const body = res.body
-            expect(res.statusCode).to.equals(200)
-            expect(body).to.contain.property('users')
-            expect(body.users.length).to.equals(9)
-            listUsers = body.users
-            done()
-        }).catch(error => done(error))
-    })
-})
-
-describe('GET /users?email=', () => {
-    it('OK, find user by email', done => {
-        request(app).get('/users?email=smith@exo.com&&fields=name,email').then(res => {
-            const body = res.body
-            expect(res.statusCode).to.equals(200)
-            expect(body).to.contain.property('user')
-            done()
-        }).catch(error => done(error))
-    })
-})
-
-describe('GET /users/:userId', () => {
-    it('OK, get detail user', done => {
-        request(app).get(`/users/${listUsers[0]._id}?fields=name,email,password`).then(res => {
-            const body = res.body
-            expect(res.statusCode).to.equals(200)
-            expect(body).to.contain.property('user')
-            expect(body.user).to.contain.property('name')
-            expect(body.user).to.contain.property('email')
-            expect(body.user).to.not.contain.property('password')
-            expect(body.user).to.not.contain.property('address')
-            done()
-        }).catch(error => done(error))
-    })
-})
 
 describe('POST /users/admin', () => {
     it('OK, create admin with email vantuan130393@gmail.com', done => {
@@ -292,10 +240,51 @@ describe('POST /auths/login', () => {
             expect(res.statusCode).to.equals(200)
             expect(body).to.contain.property('user')
             expect(body.user).to.contain.property('tokenKey')
-            user = body.user
+            normalUser = body.user
             // Save token key to global variable and use it in other test
             done()
         }).catch((error) => done(error))
+    })
+})
+
+describe('GET /users', () => {
+    it('OK, get list users', done => {
+        request(app).get('/users').set({
+            "x-access-token": admin.tokenKey
+        }).then(res => {
+            const body = res.body
+            expect(res.statusCode).to.equals(200)
+            expect(body).to.contain.property('users')
+            expect(body.users.length).to.equals(9)
+            listUsers = body.users
+            done()
+        }).catch(error => done(error))
+    })
+})
+
+describe('GET /users/email/', () => {
+    it('OK, find user by email', done => {
+        request(app).get('/users/email/smith@exo.com').then(res => {
+            const body = res.body
+            expect(res.statusCode).to.equals(200)
+            expect(body).to.contain.property('user')
+            done()
+        }).catch(error => done(error))
+    })
+})
+
+describe('GET /users/:userId', () => {
+    it('OK, get detail user', done => {
+        request(app).get(`/users/${listUsers[0]._id}?fields=name,email,password`).then(res => {
+            const body = res.body
+            expect(res.statusCode).to.equals(200)
+            expect(body).to.contain.property('user')
+            expect(body.user).to.contain.property('name')
+            expect(body.user).to.contain.property('email')
+            expect(body.user).to.not.contain.property('password')
+            expect(body.user).to.not.contain.property('address')
+            done()
+        }).catch(error => done(error))
     })
 })
 
@@ -313,7 +302,7 @@ describe('POST /users/admin/:userIds/block', () => {
     })
     it('FAIL, user not permistion', done => {
         request(app).post(`/users/admin/${listUsers[1]._id}/block`).set({
-            "x-access-token": user.tokenKey
+            "x-access-token": normalUser.tokenKey
         }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(403)
@@ -337,7 +326,7 @@ describe('POST /users/admin/:userIds/unlock', () => {
     })
     it('FAIL, user not permistion', done => {
         request(app).post(`/users/admin/${listUsers[1]._id}/unlock`).set({
-            "x-access-token": user.tokenKey
+            "x-access-token": normalUser.tokenKey
         }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(403)
@@ -405,7 +394,7 @@ describe('PUT /users/:userId', () => {
     })
     it('FAIL, user not permistion', done => {
         request(app).put(`/users/${listUsers[0]._id}`).set({
-            "x-access-token": user.tokenKey
+            "x-access-token": normalUser.tokenKey
         }).send({
             name: 'Smith',
             gender: 'male',
@@ -432,10 +421,24 @@ describe('DELETE /users/admin/:userIds/', () => {
     })
     it('FAIL, user not permistion', done => {
         request(app).delete(`/users/admin/${listUsers[0]._id}/`).set({
-            "x-access-token": user.tokenKey
+            "x-access-token": normalUser.tokenKey
         }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(403)
+            done()
+        }).catch((error) => done(error))
+    })
+})
+
+describe('POST /users/admin/:userId/change-user-role?role=admin', () => {
+    it('OK, change user role to mod', done => {
+        request(app).post(`/users/admin/${normalUser._id}/change-user-role?role=mod`).set({
+            "x-access-token": admin.tokenKey
+        }).then(res => {
+            const body = res.body
+            expect(res.statusCode).to.equals(200)
+            expect(body).to.contain.property('user')
+            expect(body.user.role).to.equals('mod')
             done()
         }).catch((error) => done(error))
     })

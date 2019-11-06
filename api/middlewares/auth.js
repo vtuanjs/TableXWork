@@ -4,8 +4,7 @@ const { verifyToken, generateToken } = require('../helpers/jwt.helper')
 const tokenSecret = process.env.TOKEN_SECRET || 'secret3322'
 const tokenLife = process.env.TOKEN_LIFE || 8640
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || 'secret3323332'
-const redisLife = process.env.REDIS_LIFE
-
+const redisLife = parseInt(process.env.REDIS_TOKEN_LIFE)
 
 const findUser = (userId) => {
     return new Promise((resolve, reject) => {
@@ -15,11 +14,11 @@ const findUser = (userId) => {
             }
 
             if (!user) {
-                return reject("Can not find user with this token")
+                return reject('Can not find user with this token')
             }
 
             if (user.isBanned === 1) {
-                return reject("User is blocked")
+                return reject('User is blocked')
             }
 
             resolve(user)

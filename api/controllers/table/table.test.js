@@ -5,7 +5,8 @@ const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
 let owner
-let member
+let kienMember
+let anMember
 let nonMember
 let listTables // Use to update, delete this company with Id
 let userIds // Array user will add to table
@@ -148,7 +149,9 @@ describe('GET /tables/:tableId', () => {
 
 describe('PREPARE ADD MEMBERS', () => {
     it('OK, get users will add to table', done => {
-        request(app).get('/users').then(res => {
+        request(app).get('/users').set({
+            'x-access-token': owner.tokenKey
+        }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
             userIds = body.users.map(user => user._id).slice(0, 4)
@@ -157,12 +160,14 @@ describe('PREPARE ADD MEMBERS', () => {
             done()
         }).catch(error => done(error))
     })
-    it('OK, get single user will add to table', done => {
-        request(app).get('/users?email=' + "ngocancsdl@gmail.com").then(res => {
+    it('OK, login member will add to table', done => {
+        request(app).post(`/auths/login`).send({
+            email: 'ngocancsdl@gmail.com',
+            password: '12345678d'
+        }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
-            expect(body).to.contain.property('user')
-            userId = body.user._id
+            anMember = body.user
             done()
         }).catch(error => done(error))
     })
@@ -195,7 +200,7 @@ describe('POST /tables/:tableId/add-members', () => {
         request(app).post(`/tables/${listTables[0]._id}/add-members`).set({
             'x-access-token': owner.tokenKey
         }).send({
-            userIds: userId
+            userIds: anMember._id
         }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
@@ -206,7 +211,7 @@ describe('POST /tables/:tableId/add-members', () => {
         request(app).post(`/tables/${listTables[1]._id}/add-members`).set({
             'x-access-token': owner.tokenKey
         }).send({
-            userIds: userId
+            userIds: anMember._id
         }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
@@ -241,7 +246,7 @@ describe('POST /tables/:tableId/add-members', () => {
         request(app).post(`/tables/${listTables[2]._id}/add-members`).set({
             'x-access-token': nonMember.tokenKey
         }).send({
-            userIds: userId
+            userIds: anMember._id
         }).then(res => {
             expect(res.statusCode).to.equals(403)
             done()
@@ -250,28 +255,17 @@ describe('POST /tables/:tableId/add-members', () => {
 })
 
 describe('POST /tables/:tableId/agree-join-table', () => {
-    before(done => {
-        request(app).post(`/auths/login`).send({
-            email: 'ngocancsdl@gmail.com',
-            password: '12345678d'
-        }).then(res => {
-            const body = res.body
-            expect(res.statusCode).to.equals(200)
-            member = body.user
-            done()
-        }).catch(error => done(error))
-    })
     it('OK, agree join table', done => {
         request(app).post(`/tables/${listTables[0]._id}/agree-join-table`).set({
-            'x-access-token': member.tokenKey
+            'x-access-token': anMember.tokenKey
         }).then(res => {
             expect(res.statusCode).to.equals(200)
             done()
         }).catch(error => done(error))
     })
-    it('FAIL, test user add members', done => {
+    it('FAIL, normal user can not add members', done => {
         request(app).post(`/tables/${listTables[0]._id}/add-members`).set({
-            'x-access-token': member.tokenKey
+            'x-access-token': anMember.tokenKey
         }).send({
             userIds: userIds[4]
         }).then(res => {
@@ -282,7 +276,7 @@ describe('POST /tables/:tableId/agree-join-table', () => {
     })
     it('OK, disagree join table', done => {
         request(app).post(`/tables/${listTables[1]._id}/disagree-join-table`).set({
-            'x-access-token': member.tokenKey
+            'x-access-token': anMember.tokenKey
         }).then(res => {
             expect(res.statusCode).to.equals(200)
             done()
@@ -298,13 +292,13 @@ describe('POST /tables/:tableId/agree-join-table', () => {
         }).then(res => {
             const body = res.body
             expect(res.statusCode).to.equals(200)
-            member = body.user
+            kienMember = body.user
             done()
         }).catch(error => done(error))
     })
     it('OK, kien.nguyen@amavi.asia agree join table', done => {
         request(app).post(`/tables/${listTables[0]._id}/agree-join-table`).set({
-            'x-access-token': member.tokenKey
+            'x-access-token': kienMember.tokenKey
         }).then(res => {
             expect(res.statusCode).to.equals(200)
             done()
@@ -417,11 +411,8 @@ describe('PUT /tables/:tableId/', () => {
 
 describe('POST /tables/:tableId/change-user-role', () => {
     it('OK, change user role', done => {
-        request(app).post(`/tables/${listTables[0]._id}/change-user-role`).set({
+        request(app).post(`/tables/${listTables[0]._id}/change-user-role?userId=${kienMember._id}&role=admin`).set({
             'x-access-token': owner.tokenKey
-        }).send({
-            userId: userId,
-            role: 'admin'
         }).then(res => {
             const body = res.body
             body.user.tables.every(table => {
@@ -433,24 +424,13 @@ describe('POST /tables/:tableId/change-user-role', () => {
     })
 })
 
-describe('POST /tables/:tableId/leave-table', () => {
-    before(done => {
-        request(app).post(`/auths/login`).send({
-            email: 'ngocancsdl@gmail.com',
-            password: '12345678d'
-        }).then(res => {
-            const body = res.body
-            expect(res.statusCode).to.equals(200)
-            member = body.user
-            done()
-        }).catch(error => done(error))
-    })
-    it('OK, leave table', done => {
-        request(app).post(`/tables/${listTables[0]._id}/leave-table`).set({
-            'x-access-token': member.tokenKey
-        }).then(res => {
-            expect(res.statusCode).to.equals(200)
-            done()
-        }).catch(error => done(error))
-    })
-})
+// describe('POST /tables/:tableId/leave-table', () => {
+//     it('OK, leave table', done => {
+//         request(app).post(`/tables/${listTables[0]._id}/leave-table`).set({
+//             'x-access-token': anMember.tokenKey
+//         }).then(res => {
+//             expect(res.statusCode).to.equals(200)
+//             done()
+//         }).catch(error => done(error))
+//     })
+// })

@@ -394,7 +394,7 @@ module.exports.removeMembers = async (req, res, next) => {
                     $in: arrayUserIds
                 }
             }, {
-                $unset: {
+                $pull: {
                     teams: {
                         _id: teamId
                     }
@@ -418,7 +418,7 @@ module.exports.leaveTeam = async (req, res, next) => {
         await User.updateOne({
             _id: signedInUser._id
         }, {
-            $unset: {
+            $pull: {
                 teams: {
                     _id: teamId
                 }

@@ -5,7 +5,7 @@ const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
 let owner
-let jobId = ''
+let cellId = ''
 let listComments
 
 describe('PREPARE TESTING JOB', () => {
@@ -22,17 +22,17 @@ describe('PREPARE TESTING JOB', () => {
             done()
         }).catch((error) => done(error))
     })
-    it('OK, get job Id', done => {
-        redis.get('listJobs').then(data => {
-            jobId = JSON.parse(data)[0]._id
+    it('OK, get cell Id', done => {
+        redis.get('listCells').then(data => {
+            cellId = JSON.parse(data)[0]._id
             done()
         }).catch(error => done(error))
     })
 })
 
-describe('POST /comments', () => {
+describe('POST /cells/:cellId/comments', () => {
     it('OK, create comment 1', done => {
-        request(app).post(`/comments?jobId=${jobId}`)
+        request(app).post(`/cells/${cellId}/comments`)
             .set({ 'x-access-token': owner.tokenKey })
             .send({ body: 'Comment 1' })
             .then(res => {
@@ -44,7 +44,7 @@ describe('POST /comments', () => {
             .catch((error) => done(error))
     })
     it('OK, create comment 2', done => {
-        request(app).post(`/comments?jobId=${jobId}`)
+        request(app).post(`/cells/${cellId}/comments`)
             .set({ 'x-access-token': owner.tokenKey })
             .send({ body: 'Comment 2' })
             .then(res => {
@@ -56,7 +56,7 @@ describe('POST /comments', () => {
             .catch((error) => done(error))
     })
     it('OK, create comment 3', done => {
-        request(app).post(`/comments?jobId=${jobId}`)
+        request(app).post(`/cells/${cellId}/comments`)
             .set({ 'x-access-token': owner.tokenKey })
             .send({ body: 'Comment 3' })
             .then(res => {
@@ -68,7 +68,7 @@ describe('POST /comments', () => {
             .catch((error) => done(error))
     })
     it('OK, create comment 4', done => {
-        request(app).post(`/comments?jobId=${jobId}`)
+        request(app).post(`/cells/${cellId}/comments`)
             .set({ 'x-access-token': owner.tokenKey })
             .send({ body: 'Comment 4' })
             .then(res => {
@@ -81,9 +81,9 @@ describe('POST /comments', () => {
     })
 })
 
-describe('GET /comments?jobId=', () => {
-    it('OK, get all comment in job', done => {
-        request(app).get(`/comments?jobId=${jobId}`)
+describe('GET /cells/:cellId/comments', () => {
+    it('OK, get all comment in cell', done => {
+        request(app).get(`/cells/${cellId}/comments`)
             .set({ 'x-access-token': owner.tokenKey })
             .then(res => {
                 const body = res.body
@@ -96,9 +96,9 @@ describe('GET /comments?jobId=', () => {
     })
 })
 
-describe('GET /comments/:commentId', () => {
+describe('GET /cells/:cellId/comments/:commentId', () => {
     it('OK, get detail comment', done => {
-        request(app).get(`/comments/${listComments[0]._id}`)
+        request(app).get(`/cells/${cellId}/comments/${listComments[0]._id}`)
             .set({ 'x-access-token': owner.tokenKey })
             .then(res => {
                 const body = res.body
@@ -110,9 +110,9 @@ describe('GET /comments/:commentId', () => {
     })
 })
 
-describe('PUT /comments/:commentId', () => {
+describe('PUT /cells/:cellId/comments/:commentId', () => {
     it('OK, edit comment', done => {
-        request(app).put(`/comments/${listComments[0]._id}`)
+        request(app).put(`/cells/${cellId}/comments/${listComments[0]._id}`)
             .set({ 'x-access-token': owner.tokenKey })
             .send({body: 'Comment Edited'})
             .then(res => {
@@ -124,7 +124,7 @@ describe('PUT /comments/:commentId', () => {
             .catch((error) => done(error))
     })
     it('OK, edit comment again', done => {
-        request(app).put(`/comments/${listComments[0]._id}`)
+        request(app).put(`/cells/${cellId}/comments/${listComments[0]._id}`)
             .set({ 'x-access-token': owner.tokenKey })
             .send({body: 'Comment Edited Again'})
             .then(res => {
@@ -137,9 +137,9 @@ describe('PUT /comments/:commentId', () => {
     })
 })
 
-describe('DELETE /comments/:commentId', () => {
+describe('DELETE /cells/:cellId/comments/:commentId', () => {
     it('OK, delete comment comment', done => {
-        request(app).delete(`/comments/${listComments[1]._id}`)
+        request(app).delete(`/cells/${cellId}/comments/${listComments[1]._id}`)
             .set({ 'x-access-token': owner.tokenKey })
             .then(res => {
                 expect(res.statusCode).to.equals(200)

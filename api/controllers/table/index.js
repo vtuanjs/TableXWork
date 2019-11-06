@@ -4,6 +4,7 @@ const User = require('../user/user.model')
 const Notify = require('../notify/notify.model')
 const mongoose = require('mongoose')
 const redis = require('../../helpers/redis')
+const redisLife = parseInt(process.env.REDIS_QUERY_LIFE)
 const INVITE_JOIN_TABLE = 'Invite Join Table'
 
 module.exports.postTable = async (req, res, next) => {
@@ -42,7 +43,7 @@ module.exports.postTable = async (req, res, next) => {
 const addRefTableToUser = (tableId, user) => {
     user.tables.push({
         _id: tableId,
-        role: "owner",
+        role: 'owner',
         isJoined: 1
     })
 
@@ -58,7 +59,7 @@ module.exports.deleteTable = async (req, res, next) => {
             value: 1
         })
 
-        if (!table) throw "Can not find table"
+        if (!table) throw 'Can not find table'
 
         return res.json({
             message: `Send table ${table.title} to trash successfully!`,
@@ -105,7 +106,7 @@ const setTableStatus = ({ tableId, status, value }) => {
             (error, table) => {
                 if (error) return reject(reject)
                 if (table) {
-                    redis.setex(tableId, 3600, JSON.stringify(table))
+                    redis.setex(tableId, redisLife, JSON.stringify(table))
                     resole(table)
                 }
             }
@@ -122,7 +123,7 @@ module.exports.undoDeleteTable = async (req, res, next) => {
             value: 0
         })
 
-        if (!table) throw "Can not find table"
+        if (!table) throw 'Can not find table'
 
         return res.json({
             message: `Restore table ${table.title} successfully!`,
@@ -144,7 +145,7 @@ module.exports.deleteImmediately = async (req, res, next) => {
         await redis.del(tableId)
 
         return res.json({
-            message: "Delete table successfully!",
+            message: 'Delete table successfully!',
             raw
         })
     } catch (error) {
@@ -161,7 +162,7 @@ module.exports.storedTable = async (req, res, next) => {
             value: 1
         })
 
-        if (!table) throw "Can not find table"
+        if (!table) throw 'Can not find table'
 
         return res.json({
             message: `Stored table ${table.title} successfully!`,
@@ -181,7 +182,7 @@ module.exports.undoStoredTable = async (req, res, next) => {
             value: 0
         })
 
-        if (!table) throw "Can not find table"
+        if (!table) throw 'Can not find table'
 
         return res.json({
             message: `Undo Stored table successfully!`,
@@ -215,9 +216,9 @@ module.exports.updateTable = async (req, res, next) => {
             }
         )
 
-        if (!table) throw "Can not find table"
+        if (!table) throw 'Can not find table'
 
-        await redis.setex(tableId, 3600, JSON.stringify(table))
+        await redis.setex(tableId, redisLife, JSON.stringify(table))
 
         return res.json({
             message: `Update table successfully!`,
@@ -290,7 +291,7 @@ const selectFieldsShow = fields => {
         return fields.split(',').join(' ')
     }
 
-    return ""
+    return ''
 }
 
 module.exports.getTable = async (req, res, next) => {
@@ -308,10 +309,10 @@ module.exports.getTable = async (req, res, next) => {
         } else {
             const table = await Table.findById(tableId).select(selectFields)
 
-            if (!table) throw "Wrong table id"
+            if (!table) throw 'Wrong table id'
 
             // Store data to redis
-            await redis.setex(tableId, 3600, JSON.stringify(table))
+            await redis.setex(tableId, redisLife, JSON.stringify(table))
 
             return res.json({
                 table
@@ -326,8 +327,8 @@ module.exports.addMembers = async (req, res, next) => {
     const userIds = req.body.userIds
     const tableId = req.params.tableId
     const signedInUser = req.user
-    const session = await mongoose.startSession()
     try {
+        const session = await mongoose.startSession()
         await session.withTransaction(async () => {
             const arrayUserIds = splitUserIds(userIds)
 
@@ -337,7 +338,7 @@ module.exports.addMembers = async (req, res, next) => {
                 getVerifyUserIds(arrayUserIds)
             ])
 
-            if (verifyUserIds.length === 0) throw 'Can not find any user"'
+            if (verifyUserIds.length === 0) throw 'Can not find any user'
 
             if (!isAllowed({
                 table,
@@ -347,7 +348,7 @@ module.exports.addMembers = async (req, res, next) => {
                 throw 'Member can not add member'
             }
 
-            await Promise.all([
+            const [raw, ] = await Promise.all([
                 addRefTableToUsers({
                     tableId,
                     userIds: verifyUserIds,
@@ -361,8 +362,13 @@ module.exports.addMembers = async (req, res, next) => {
                 })
             ])
 
+            if (!raw.ok) {
+                throw 'Add member failed'
+            }
+
             return res.json({
-                message: `Add member successfully!`
+                message: `Add member successfully!`,
+                raw
             })
         })
     } catch (error) {
@@ -417,14 +423,14 @@ const addRefTableToUsers = ({
         _id: {
             $in: userIds
         },
-        "tables._id": {
+        'tables._id': {
             $ne: tableId
         }
     }, {
         $push: {
             tables: {
                 _id: tableId,
-                role: "user",
+                role: 'user',
                 isJoined: 0
             }
         }
@@ -476,8 +482,8 @@ module.exports.agreeJoinTable = async (req, res, next) => {
     const tableId = req.params.tableId
     const signedInUser = req.user
     try {
-        await Promise.all([
-            User.findOneAndUpdate({
+        const [raw, ] = await Promise.all([
+            User.updateOne({
                 _id: signedInUser._id,
             }, {
                 $set: {
@@ -503,8 +509,13 @@ module.exports.agreeJoinTable = async (req, res, next) => {
             })
         ])
 
+        if (!raw.ok) {
+            throw 'Can not join table'
+        }
+
         return res.json({
-            message: 'Join table successfully!'
+            message: 'Join table successfully!',
+            raw
         })
     } catch (error) {
         next(error)
@@ -515,7 +526,7 @@ module.exports.disAgreeJoinTable = async (req, res, next) => {
     const tableId = req.params.tableId
     const signedInUser = req.user
     try {
-        await Promise.all([
+        const [raw, ] = await Promise.all([
             User.updateOne({
                 _id: signedInUser._id,
                 'tables._id': tableId
@@ -541,8 +552,13 @@ module.exports.disAgreeJoinTable = async (req, res, next) => {
             })
         ])
 
+        if (!raw.ok){
+            throw 'Can not disagree join table'
+        }
+
         return res.json({
-            message: 'Disagree join table successfully!'
+            message: 'Disagree join table successfully!',
+            raw
         })
     } catch (error) {
         next(error)
@@ -556,17 +572,21 @@ module.exports.removeMembers = async (req, res, next) => {
     try {
         const arrayUserIds = splitUserIds(userIds)
 
-        await User.updateMany({
+        const raw = await User.updateMany({
             _id: {
                 $in: arrayUserIds
             }
         }, {
-            $unset: {
+            $pull: {
                 tables: {
                     _id: tableId
                 }
             }
         })
+
+        if (!raw.ok) {
+            throw 'Can not remove any members'
+        }
 
         return res.json({
             message: `Remove member successfully!`,
@@ -593,7 +613,9 @@ const handleShowMembers = (members, tableId) => {
 module.exports.showMembers = async (req, res, next) => {
     let { tableId } = req.params
     try {
-        const members = await User.find({ 'tables._id': tableId })
+        const members = await User.find({
+            'tables._id': tableId
+        })
 
         if (!members) {
             throw 'Can not find any members'
@@ -609,15 +631,19 @@ module.exports.leaveTable = async (req, res, next) => {
     const { tableId } = req.params
     const signedInUser = req.user
     try {
-        await User.updateOne({
+        const raw = await User.updateOne({
             _id: signedInUser._id
         }, {
-            $unset: {
+            $pull: {
                 tables: {
                     _id: tableId
                 }
             }
         })
+
+        if (!raw.ok) {
+            throw 'Can not leave table'
+        }
 
         return res.json({
             message: `Leave table successfully!`,
@@ -632,16 +658,15 @@ module.exports.changeUserRole = async (req, res, next) => {
     const {
         userId,
         role
-    } = req.body
+    } = req.query
 
     try {
-        debugger
         const user = await User.findOneAndUpdate({
             _id: userId,
             'tables._id': tableId
         }, {
             $set: {
-                "tables.$[element].role": role
+                'tables.$[element].role': role
             }
         }, {
             arrayFilters: [{
@@ -649,7 +674,7 @@ module.exports.changeUserRole = async (req, res, next) => {
             }],
             new: true
         })
-        if (!user) throw "Can not find user/table or user not a member in table"
+        if (!user) throw 'Can not find user/table or user not a member in table'
 
         return res.json({
             message: `${user.name} is now ${role}!`,

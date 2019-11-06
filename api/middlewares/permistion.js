@@ -16,8 +16,12 @@ const addAdminRole = (roles) => {
         roles += ' owner'
     }
 
-    if (roles.indexOf("user") > -1) {
+    if (roles.indexOf("mod") > -1) {
         roles += ' admin owner'
+    }
+
+    if (roles.indexOf("user") > -1) {
+        roles += ' mod admin owner'
     }
 
     return roles
@@ -27,7 +31,7 @@ const addAdminRole = (roles) => {
  * Check roles
  * @param {*} param0 
  */
-const shouldIsAllowed = ({user, models, id, roles}) => {
+const shouldIsAllowed = ({ user, models, id, roles }) => {
     roles = addAdminRole(roles)
 
     return user[models] && user[models].some(item => {
@@ -35,6 +39,10 @@ const shouldIsAllowed = ({user, models, id, roles}) => {
     })
 }
 
+/**
+ * Check permistion in user
+ * @param {*} as { user, roles } 
+ */
 const isInUser = ({ user, roles }) => {
     roles = addAdminRole(roles)
 
@@ -44,6 +52,10 @@ const isInUser = ({ user, roles }) => {
     return false
 }
 
+/**
+ * Check permistion in table
+ * @param {*} as { user, roles, tableId } 
+ */
 const isInTable = ({ user, roles, tableId }) => {
     if (tableId) {
         if (shouldIsAllowed({
@@ -59,63 +71,83 @@ const isInTable = ({ user, roles, tableId }) => {
     return false
 }
 
-// const isInTeam = (allowed, source) => {
-//     return (req) => {
-//         const signedInUser = req.user
-//         let teamId = findParameterFromSource('teamId', source)(req)
+/**
+ * Check permistion in cell
+ * @param {*} as { user, roles, tableId } 
+ */
+const isInCell = ({ user, roles, cellId }) => {
+    if (cellId) {
+        if (shouldIsAllowed({
+            user,
+            models: 'cells',
+            id: cellId,
+            roles
+        })) {
+            return true
+        }
+    }
 
-//         if (teamId) {
-//             if (shouldIsAllowed({
-//                 user: signedInUser,
-//                 propertyInUser: 'teams',
-//                 propertyIdCheck: teamId,
-//                 allowed
-//             })) {
-//                 return true
-//             }
-//         }
+    return false
+}
 
-//         return false
-//     }
-// }
+const isInTeam = ({ user, roles, teamId }) => {
+    if (teamId) {
+        if (shouldIsAllowed({
+            user,
+            models: 'teams',
+            id: teamId,
+            roles
+        })) {
+            return true
+        }
+    }
+
+    return false
+}
 
 /**
  * Check permit from array object. 
  * 
- * {user, modelCheck, roles, id}, {user, modelCheck, roles, id}
- * @param {*} as {user, modelCheck, roles, id}
+ * {model, roles}, {model, roles}
+ * @param {*} as {model, roles}
  */
 module.exports = checkPermit = (...checks) => {
-    let isAccess = false
 
-    for (let i = 0; i < checks.length; i++) {
-        const {
-            user,
-            modelCheck,
-            roles,
-            id
-        } = checks[i]
-        switch (modelCheck) {
-            case 'user':
-                if (isInUser({ user, roles })) {
-                    isAccess = true
-                }
-                break
-            case 'table':
-                if (isInTable({ user, roles, tableId: id })) {
-                    isAccess = true
-                }
-                break
-            // case 'job':
-            //     if (isInJob(roles, source)(req)) return next()
-            // case 'team':
-            //     if (isInTeam(roles, source)(req)) return next()
-            default:
-                break
+    return (req, res, next) => {
+        let isAccess = false
+        const user = req.user
+
+        for (let i = 0; i < checks.length; i++) {
+            const { model, roles } = checks[i]
+
+            switch (model) {
+                case 'user':
+                    if (isInUser({ user, roles })) {
+                        isAccess = true
+                    }
+                    break
+                case 'table':
+                    const tableId = req.params.tableId
+                    if (isInTable({ user, roles, tableId })) {
+                        isAccess = true
+                    }
+                    break
+                case 'team':
+                    const teamId = req.params.teamId
+                    if (isInTeam({ user, roles, teamId })) {
+                        isAccess = true
+                    }
+                case 'cell':
+                    const cellId = req.params.cellId
+                    if (isInCell({ user, roles, cellId })) {
+                        isAccess = true
+                    }
+                    break
+                default:
+                    break
+            }
         }
-    }
 
-    return (_req, res, next) => {
         if (isAccess) {
             return next()
         } else {

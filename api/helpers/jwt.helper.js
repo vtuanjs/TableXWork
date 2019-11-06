@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
 /**
  * private function generateToken
@@ -18,7 +18,7 @@ const generateToken = (user, secretString, tokenLife) => {
             userData,
             secretString,
             {
-                algorithm: "HS256",
+                algorithm: 'HS256',
                 expiresIn: tokenLife,
             },
             (error, tokenKey) => {

@@ -4,86 +4,71 @@ const table = require("../controllers/table")
 const authentication = require("../middlewares/auth")
 const checkPermit = require("../middlewares/permistion")
 
-router.post("/", authentication.required, table.postTable)
+router.use(authentication.required)
 
-router.post("/:tableId/delete", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.post("/", table.postTable)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.deleteTable)
+router.post("/:tableId/delete", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.deleteTable)
 
-router.post("/:tableId/restore", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.post("/:tableId/restore", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.undoDeleteTable)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.undoDeleteTable)
+router.delete("/:tableId", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.deleteImmediately)
 
-router.delete("/:tableId", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.post("/:tableId/stored", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.storedTable)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.deleteImmediately)
+router.post("/:tableId/undoStored", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.undoStoredTable)
 
-router.post("/:tableId/stored", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.put("/:tableId", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.updateTable)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.storedTable)
+router.get("/", table.getTables)
 
-router.post("/:tableId/undoStored", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.get("/:tableId", checkPermit({
+    model: 'table',
+    roles: 'user'
+}), table.getTable)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.undoStoredTable)
+router.post("/:tableId/add-members", checkPermit({
+    model: 'table',
+    roles: 'user'
+}), table.addMembers)
 
-router.put("/:tableId", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.post("/:tableId/remove-members", checkPermit({
+    model: 'table',
+    roles: 'user'
+}), table.removeMembers)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.updateTable)
+router.get("/:tableId/show-members", checkPermit({
+    model: 'table',
+    roles: 'user'
+}), table.showMembers)
 
-router.get("/", authentication.required, table.getTables)
+router.post("/:tableId/agree-join-table", table.agreeJoinTable)
 
-router.get("/:tableId", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
+router.post("/:tableId/disagree-join-table", table.disAgreeJoinTable)
 
-    checkPermit({ user, modelCheck: 'table', roles: 'user', id: tableId })(req, res, next)
-}, table.getTable)
+router.post("/:tableId/leave-table", table.leaveTable)
 
-router.post("/:tableId/add-members", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
-
-    checkPermit({ user, modelCheck: 'table', roles: 'user', id: tableId })(req, res, next)
-}, table.addMembers)
-
-router.post("/:tableId/remove-members", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
-
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.removeMembers)
-
-router.get("/:tableId/show-members", authentication.required, table.showMembers)
-
-router.post("/:tableId/agree-join-table", authentication.required, table.agreeJoinTable)
-
-router.post("/:tableId/disagree-join-table", authentication.required, table.disAgreeJoinTable)
-
-router.post("/:tableId/leave-table", authentication.required, table.leaveTable)
-
-router.post("/:tableId/change-user-role", authentication.required, (req, res, next) => {
-    const user = req.user
-    const tableId = req.params.tableId
-
-    checkPermit({ user, modelCheck: 'table', roles: 'admin', id: tableId })(req, res, next)
-}, table.changeUserRole)
+router.post("/:tableId/change-user-role", checkPermit({
+    model: 'table',
+    roles: 'admin'
+}), table.changeUserRole)
 
 module.exports = router

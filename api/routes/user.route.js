@@ -8,32 +8,42 @@ router.post("/", user.postUser)
 
 router.post("/admin/", user.postAdmin)
 
-router.post("/admin/:userIds/block", authentication.required, (req, res, next) => {
-    const user = req.user
-    checkPermit({user, modelCheck: 'user', roles: 'admin'})(req, res, next)
-}, user.blockUsers)
-
-router.post("/admin/:userIds/unlock", authentication.required, (req, res, next) => {
-    const user = req.user
-    checkPermit({user, modelCheck: 'user', roles: 'admin'})(req, res, next)
-}, user.unlockUsers)
-
-router.get("/", user.getUsers)
-
 router.get("/:userId", user.getUser)
 
-router.put("/:userId", authentication.required, (req, res, next) => {
+router.get("/email/:email", user.getByEmail)
+
+// Require auth
+router.use(authentication.required)
+
+router.get("/", checkPermit({
+    model: 'user', roles: 'mod'
+}), user.getUsers)
+
+router.post("/admin/:userIds/block", checkPermit({
+    model: 'user', roles: 'admin'
+}), user.blockUsers)
+
+router.post("/admin/:userIds/unlock", checkPermit({
+    model: 'user', roles: 'admin'
+}), user.unlockUsers)
+
+router.put("/:userId", (req, res, next) => {
+    // User can edit user's self
     const user = req.user
     const userId = req.params.userId
-
     if (user._id.equals(userId)) return next()
 
-    checkPermit({user, modelCheck: 'user', roles: 'admin'})(req, res, next)
-}, user.updateUser) // Edit
+    checkPermit({
+        model: 'user', roles: 'admin'
+    })(req, res, next)
+}, user.updateUser)
 
-router.delete("/admin/:userId", authentication.required, (req, res, next) => {
-    const user = req.user
-    checkPermit({user, modelCheck: 'user', roles: 'admin'})(req, res, next)
-}, user.deleteUser)
+router.delete("/admin/:userId", checkPermit({
+    model: 'user', roles: 'admin'
+}), user.deleteUser)
+
+router.post("/admin/:userId/change-user-role", checkPermit({
+    model: 'user', roles: 'admin'
+}), user.changeUserRole)
 
 module.exports = router
