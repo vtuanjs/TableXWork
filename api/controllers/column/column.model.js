@@ -24,5 +24,28 @@ const ColumnSchema = new Schema({
     autoCreate: true
 })
 
+ColumnSchema.pre('deleteOne', async function (next) {
+    const _id = this.getQuery()["_id"]
+    try {
+        const cells = await mongoose.model('Cell').find({
+            column: _id
+        })
+
+        if (cells.length > 0) {
+            const cellIds = cells.map(cell => cell._id)
+
+            await mongoose.model('Cell').deleteMany({
+                _id: {
+                    $in: cellIds
+                }
+            })
+        }
+
+        next()
+    } catch (error) {
+        next(error)
+    }
+})
+
 const Column = mongoose.model("Column", ColumnSchema)
 module.exports = Column

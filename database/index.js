@@ -10,7 +10,7 @@ const connect = async () => {
             useUnifiedTopology: true
         }
         if (process.env.NODE_ENV === 'test') {
-            const url = process.env.DB_TEST_URL
+            const url = process.env.MONGO_URL // Change to DB_TEST_URL
             await mongoose.connect(url, options)
         } else {
             const url = process.env.MONGO_URL

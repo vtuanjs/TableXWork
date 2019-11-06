@@ -36,22 +36,29 @@ const TableSchema = new Schema({
 
 TableSchema.pre('deleteOne', function (next) {
     const _id = this.getQuery()["_id"]
-    mongoose.model("User").updateMany({
-        'tables._id': _id
-    }, {
-        $pull: {
-            tables: {
-                _id: _id
+    return Promise.all([
+        mongoose.model("User").updateMany({
+            'tables._id': _id
+        }, {
+            $pull: {
+                tables: {
+                    _id: _id
+                }
             }
-        }
-    }, function (err, result) {
-        if (err) {
-            next(err)
-        } else {
-            next()
-        }
+        }),
+        mongoose.model("Row").deleteMany({
+            'table': _id
+        }),
+        mongoose.model("Column").deleteMany({
+            'table': _id
+        })
+    ]).then(() => {
+        return next()
+    }).catch(error => {
+        return next(error)
     })
 })
+
 
 const Table = mongoose.model("Table", TableSchema)
 module.exports = Table
