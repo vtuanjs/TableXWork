@@ -17,11 +17,15 @@ const logger = winston.createLogger({
 database.connect()
     .then(() => {
         server.on('error', (error) => {
-            logger.log('error', error)
+            if (process.env.NODE_ENV === 'production') {
+                logger.log('error', error)
+            }
         })
 
         server.listen(PORT, HOST, () => {
-            logger.log('info', `Server is starting at ${new Date()}`)
+            if (process.env.NODE_ENV === 'production') {
+                logger.log('info', `Server is starting at ${new Date()}`)
+            }
         })
 
         console.log(`Running on: ${HOST}:${PORT}`)

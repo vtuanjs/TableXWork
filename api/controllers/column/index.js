@@ -7,14 +7,13 @@ module.exports.postColumn = async (req, res, next) => {
         title,
         description,
     } = req.body
-    const tableId = req.params.tableId
     const signedInUser = req.user
     try {
         const column = await Column.create({
             title,
             description,
             author: signedInUser._id,
-            table: tableId,
+            table: req.params.tableId,
         })
 
         return res.json({

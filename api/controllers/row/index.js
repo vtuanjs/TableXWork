@@ -3,11 +3,8 @@ const redis = require('../../helpers/redis')
 const redisLife = parseInt(process.env.REDIS_QUERY_LIFE)
 
 module.exports.postRow = async (req, res, next) => {
-    const {
-        title,
-        description,
-    } = req.body
-    const tableId = req.params.tableId
+    const { title, description, } = req.body
+    const { tableId } = req.params
     const signedInUser = req.user
     try {
         const row = await Row.create({
@@ -58,7 +55,7 @@ const selectFieldsShow = fields => {
 
 module.exports.getRow = async (req, res, next) => {
     const { rowId, tableId } = req.params
-    const fields = req.query.fields
+    const { fields } = req.query
 
     const selectFields = selectFieldsShow(fields)
     try {
@@ -107,10 +104,7 @@ module.exports.deleteRow = async (req, res, next) => {
 
 module.exports.updateRow = async (req, res, next) => {
     const { rowId, tableId } = req.params
-    const {
-        title,
-        description,
-    } = req.body
+    const { title, description } = req.body
     try {
         const row = await Row.findOneAndUpdate({
             _id: rowId,

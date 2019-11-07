@@ -51,7 +51,7 @@ const addRefTableToUser = (tableId, user) => {
 }
 
 module.exports.deleteTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     try {
         const table = await setTableStatus({
             tableId,
@@ -79,7 +79,7 @@ module.exports.deleteTable = async (req, res, next) => {
  * @param {number} value 0 | 1
  */
 const setTableStatus = ({ tableId, status, value }) => {
-    let queryUpdate
+    let queryUpdate = {}
     switch (status) {
         case 'isDeleted':
             queryUpdate = {
@@ -115,7 +115,7 @@ const setTableStatus = ({ tableId, status, value }) => {
 }
 
 module.exports.undoDeleteTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     try {
         const table = await setTableStatus({
             tableId,
@@ -135,7 +135,7 @@ module.exports.undoDeleteTable = async (req, res, next) => {
 }
 
 module.exports.deleteImmediately = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
 
     try {
         const raw = await Table.deleteOne({
@@ -154,7 +154,7 @@ module.exports.deleteImmediately = async (req, res, next) => {
 }
 
 module.exports.storedTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     try {
         const table = await setTableStatus({
             tableId,
@@ -174,7 +174,7 @@ module.exports.storedTable = async (req, res, next) => {
 }
 
 module.exports.undoStoredTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     try {
         const table = await await setTableStatus({
             tableId,
@@ -194,7 +194,7 @@ module.exports.undoStoredTable = async (req, res, next) => {
 }
 
 module.exports.updateTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     const {
         title,
         description,
@@ -258,7 +258,7 @@ const getQueryUpdateTable = ({ title, description, isAllowMemberAddMember }) => 
 
 module.exports.getTables = async (req, res, next) => {
     const signedInUser = req.user
-    const fields = req.query.fields
+    const { fields } = req.query
 
     const selectFields = selectFieldsShow(fields)
 
@@ -295,8 +295,8 @@ const selectFieldsShow = fields => {
 }
 
 module.exports.getTable = async (req, res, next) => {
-    const tableId = req.params.tableId
-    const fields = req.query.fields
+    const { tableId } = req.params
+    const { fields } = req.query
 
     const selectFields = selectFieldsShow(fields)
 
@@ -324,18 +324,16 @@ module.exports.getTable = async (req, res, next) => {
 }
 
 module.exports.addMembers = async (req, res, next) => {
-    const userIds = req.body.userIds
-    const tableId = req.params.tableId
+    const { userIds } = req.body
+    const { tableId } = req.params
     const signedInUser = req.user
     try {
         const session = await mongoose.startSession()
         await session.withTransaction(async () => {
-            const arrayUserIds = splitUserIds(userIds)
-
             // Check both table and users exist?
             const [table, verifyUserIds] = await Promise.all([
                 Table.findById(tableId),
-                getVerifyUserIds(arrayUserIds)
+                getVerifyUserIds(userIds)
             ])
 
             if (verifyUserIds.length === 0) throw 'Can not find any user'
@@ -348,7 +346,7 @@ module.exports.addMembers = async (req, res, next) => {
                 throw 'Member can not add member'
             }
 
-            const [raw, ] = await Promise.all([
+            const [raw,] = await Promise.all([
                 addRefTableToUsers({
                     tableId,
                     userIds: verifyUserIds,
@@ -398,7 +396,7 @@ const getVerifyUserIds = (userIds) => {
     return new Promise((resole, reject) => {
         return User.find({
             _id: {
-                $in: userIds
+                $in: splitUserIds(userIds)
             }
         }, (error, users) => {
             if (error) {
@@ -449,7 +447,8 @@ const createNotifyJoinTable = ({
 }) => {
     let arrayNotifyCreate = []
     // Creating an array query creates multiple notifies
-    for (let index = 0; index < userIds.length; index++) {
+    const userIdsLength = userIds.length
+    for (let index = 0; index < userIdsLength; index++) {
         arrayNotifyCreate.push({
             title: INVITE_JOIN_TABLE,
             message: message,
@@ -479,10 +478,10 @@ const isAllowed = ({ table, idCheck, userCheck }) => {
 }
 
 module.exports.agreeJoinTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     const signedInUser = req.user
     try {
-        const [raw, ] = await Promise.all([
+        const [raw,] = await Promise.all([
             User.updateOne({
                 _id: signedInUser._id,
             }, {
@@ -523,10 +522,10 @@ module.exports.agreeJoinTable = async (req, res, next) => {
 }
 
 module.exports.disAgreeJoinTable = async (req, res, next) => {
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     const signedInUser = req.user
     try {
-        const [raw, ] = await Promise.all([
+        const [raw,] = await Promise.all([
             User.updateOne({
                 _id: signedInUser._id,
                 'tables._id': tableId
@@ -552,7 +551,7 @@ module.exports.disAgreeJoinTable = async (req, res, next) => {
             })
         ])
 
-        if (!raw.ok){
+        if (!raw.ok) {
             throw 'Can not disagree join table'
         }
 
@@ -567,14 +566,12 @@ module.exports.disAgreeJoinTable = async (req, res, next) => {
 
 
 module.exports.removeMembers = async (req, res, next) => {
-    const userIds = req.body.userIds
+    const { userIds } = req.body
     const { tableId } = req.params
     try {
-        const arrayUserIds = splitUserIds(userIds)
-
         const raw = await User.updateMany({
             _id: {
-                $in: arrayUserIds
+                $in: splitUserIds(userIds)
             }
         }, {
             $pull: {
@@ -654,11 +651,8 @@ module.exports.leaveTable = async (req, res, next) => {
 }
 
 module.exports.changeUserRole = async (req, res, next) => {
-    const tableId = req.params.tableId
-    const {
-        userId,
-        role
-    } = req.query
+    const { tableId } = req.params
+    const { userId, role } = req.query
 
     try {
         const user = await User.findOneAndUpdate({

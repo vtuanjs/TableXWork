@@ -37,9 +37,7 @@ module.exports.required = async (req, res, next) => {
     try {
         const decodedJson = await verifyToken(tokenKey, tokenSecret)
 
-        const user = await findUser(decodedJson._id)
-
-        req.user = user
+        req.user = await findUser(decodedJson._id)
         return next()
     } catch (error) {
         const refreshTokenKey = req.headers['x-refresh-token']

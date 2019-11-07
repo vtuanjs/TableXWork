@@ -4,11 +4,11 @@ const request = require('supertest')
 const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
-let owner// Save token key after login
-let member
-let listTeams
-let userIds
-let userId
+let owner = {} // Save token key after login
+let member = {}
+let listTeams = []
+let userIds = []
+let userId = ''
 
 describe('PREPARE TESTING TEAM', () => {
     it('Ok, login user account', done => {

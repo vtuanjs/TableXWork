@@ -3,7 +3,7 @@ const expect = require('chai').expect
 const request = require('supertest')
 const app = require('../../../app')
 
-let signedInUser = ''
+let signedInUser = {}
 
 describe('PREPARE TESTING NOTIFY', () => {
     it('Ok, login user account', done => {

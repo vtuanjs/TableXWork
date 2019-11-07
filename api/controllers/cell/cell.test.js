@@ -4,14 +4,14 @@ const request = require('supertest')
 const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
-let owner
+let owner = ''
 let tableId = ''
 let rowId = ''
 let columnId = ''
-let listCells = ''
-let userIds = ''
-let anMember
-let nonMember
+let listCells = []
+let userIds = []
+let anMember = {}
+let nonMember = {}
 
 describe('PREPARE TESTING CELL', () => {
     it('Ok, login user account', done => {

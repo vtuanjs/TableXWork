@@ -3,11 +3,7 @@ const bcrypt = require('bcrypt')
 const User = require('./user.model')
 
 module.exports.postUser = async (req, res, next) => {
-    const {
-        name,
-        email,
-        password
-    } = req.body
+    const { name, email, password } = req.body
     try {
         if (!validatePassword(password)) {
             throw "Password must be eight characters or longer, must contain at least 1 numeric character, 1 lowercase charater"
@@ -39,11 +35,7 @@ const validatePassword = (password) => {
 }
 
 module.exports.postAdmin = async (req, res, next) => {
-    const {
-        name,
-        email,
-        password
-    } = req.body
+    const { name, email, password } = req.body
     try {
         if (await isAdminExist()) {
             throw "This function only use one time!"
@@ -83,7 +75,7 @@ module.exports.updateUser = async (req, res, next) => {
         password,
         oldPassword
     } = req.body
-    const userId = req.params.userId
+    const { userId } = req.params
     try {
         const user = await User.findById(userId)
 
@@ -131,13 +123,9 @@ const comparePassword = (oldPassword, password) => {
 }
 
 module.exports.blockUsers = async (req, res, next) => {
-    const {
-        userIds
-    } = req.params
+    const { userIds } = req.params
     try {
-        const arrayUserIds = splitUsers(userIds)
-
-        const raw = await setIsBannedUsers(arrayUserIds, 1)
+        const raw = await setIsBannedUsers(userIds, 1)
 
         return res.json({
             message: "Block users successfully!",
@@ -170,7 +158,7 @@ const splitUsers = (userIds) => {
 const setIsBannedUsers = (userIds, status) => {
     return User.updateMany({
         _id: {
-            $in: userIds
+            $in: splitUsers(userIds)
         },
         role: {
             $ne: 'admin'
@@ -187,9 +175,7 @@ module.exports.unlockUsers = async (req, res, next) => {
         userIds
     } = req.params
     try {
-        const arrayUserIds = splitUsers(userIds)
-
-        const raw = await setIsBannedUsers(arrayUserIds, 0)
+        const raw = await setIsBannedUsers(userIds, 0)
 
         return res.json({
             message: "Unlock users successfully!",
@@ -201,9 +187,8 @@ module.exports.unlockUsers = async (req, res, next) => {
 }
 
 module.exports.deleteUser = async (req, res, next) => {
-    const {
-        userId
-    } = req.params
+    const { userId } = req.params
+
     try {
         const raw = await User.deleteOne({
             _id: userId,
@@ -234,14 +219,12 @@ const selectFieldsShow = fields => {
 }
 
 module.exports.getUser = async (req, res, next) => {
-    const userId = req.params.userId
-    let fields = req.query.fields
-
-    const selectFields = selectFieldsShow(fields)
+    const { userId } = req.params
+    let { fields } = req.query
 
     try {
         const foundUser = await User.findById(userId)
-            .select(selectFields)
+            .select(selectFieldsShow(fields))
 
         if (!foundUser) throw "User is not exist"
 
@@ -261,14 +244,14 @@ module.exports.getUser = async (req, res, next) => {
 module.exports.getByEmail = async (req, res, next) => {
     const { email } = req.params
     const { fields } = req.query
-    const selectFields = selectFieldsShow(fields)
+
     try {
         const emailFormated = email.trim().toLowerCase()
 
         const foundUser = await User
             .findOne({
                 email: emailFormated
-            }).select(selectFields)
+            }).select(selectFieldsShow(fields))
 
         if (!foundUser) throw "Can not find user with email"
 
@@ -283,19 +266,13 @@ module.exports.getByEmail = async (req, res, next) => {
 module.exports.getUsers = async (req, res, next) => {
     let { fields } = req.query
 
-    const selectFields = selectFieldsShow(fields)
-
-    // if (email) {
-    //     return getByEmail(email, selectFields)(res, next)
-    // }
-
     try {
         let foundUsers = await User.find().select("name email createdAt")
 
         if (!foundUsers) throw "Can not show list of users"
 
         if (fields) {
-            foundUsers = foundUsers.select(selectFields)
+            foundUsers = foundUsers.select(selectFieldsShow(fields))
         }
 
         return res.json({
@@ -307,8 +284,8 @@ module.exports.getUsers = async (req, res, next) => {
 }
 
 module.exports.changeUserRole = async (req, res, next) => {
-    let userId = req.params.userId
-    let role = req.query.role
+    let { userId } = req.params
+    let { role } = req.query
     try {
         const user = await User.findByIdAndUpdate(userId, {
             role

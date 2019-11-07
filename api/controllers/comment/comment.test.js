@@ -4,9 +4,9 @@ const request = require('supertest')
 const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
-let owner
+let owner = {}
 let cellId = ''
-let listComments
+let listComments = []
 
 describe('PREPARE TESTING JOB', () => {
     it('Ok, login user account', done => {

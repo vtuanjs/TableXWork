@@ -4,13 +4,12 @@ const request = require('supertest')
 const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
-let owner
-let kienMember
-let anMember
-let nonMember
-let listTables // Use to update, delete this company with Id
-let userIds // Array user will add to table
-let userId
+let owner = {}
+let kienMember = {}
+let anMember = {}
+let nonMember = {}
+let listTables = [] // Use to update, delete this company with Id
+let userIds = [] // Array user will add to table
 
 
 describe('PREPARE TESTING TABLE', () => {

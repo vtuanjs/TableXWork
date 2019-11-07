@@ -4,9 +4,9 @@ const request = require('supertest')
 const app = require('../../../app')
 const redis = require('../../helpers/redis')
 
-let owner
+let owner= {}
 let tableId = ''
-let listColumns = '' // Use to update, delete this company with Id
+let listColumns = [] // Use to update, delete this company with Id
 
 describe('PREPARE TESTING ROW', () => {
     it('Ok, login user account', done => {

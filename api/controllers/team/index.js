@@ -37,11 +37,10 @@ module.exports.postTeam = async (req, res, next) => {
 }
 
 module.exports.getTeams = async (req, res, next) => {
-    const fields = req.query.fields
+    const { fields } = req.query
 
-    const selectFields = selectFieldsShow(fields)
     try {
-        const teams = await Team.find().select(selectFields)
+        const teams = await Team.find().select(selectFieldsShow(fields))
 
         return res.json({
             message: `Get list teams succesfully!`,
@@ -66,9 +65,8 @@ const selectFieldsShow = fields => {
 
 module.exports.getTeamsByUser = async (req, res, next) => {
     const signedInUser = req.user
-    const fields = req.query.fields
+    const { fields } = req.query
 
-    const selectFields = selectFieldsShow(fields)
     try {
         const arrayTeamIdsOfUser = signedInUser.teams.map(team => {
             return team._id
@@ -77,7 +75,7 @@ module.exports.getTeamsByUser = async (req, res, next) => {
             _id: {
                 $in: arrayTeamIdsOfUser
             }
-        }).select(selectFields)
+        }).select(selectFieldsShow(fields))
 
         if (teams.length === 0) {
             throw 'Can not find any team'
@@ -94,14 +92,13 @@ module.exports.getTeamsByUser = async (req, res, next) => {
 
 module.exports.getDetail = async (req, res, next) => {
     const { teamId } = req.params
-    const fields = req.query.fields
+    const { fields } = req.query
 
-    const selectFields = selectFieldsShow(fields)
     try {
         const [team, members] = await Promise.all([
             Team.findOne({
                 _id: teamId
-            }).populate(selectFields),
+            }).populate(selectFieldsShow(fields)),
 
             User.find({ 'teams._id': teamId }).select('name')
         ])
@@ -147,7 +144,7 @@ module.exports.updateTeam = async (req, res, next) => {
 }
 
 module.exports.deleteTeam = async (req, res, next) => {
-    const teamId = req.params.teamId
+    const { teamId } = req.params
 
     try {
         const raw = await Team.deleteOne({
@@ -164,18 +161,16 @@ module.exports.deleteTeam = async (req, res, next) => {
 }
 
 module.exports.addMembers = async (req, res, next) => {
-    const userIds = req.body.userIds
-    const teamId = req.params.teamId
+    const { userIds } = req.body
+    const { teamId } = req.params
     const signedInUser = req.user
     const session = await mongoose.startSession()
     try {
         await session.withTransaction(async () => {
-            const arrayUserIds = splitUserIds(userIds)
-
             // Verify team and users will add to team
             const [team, verifyUserIds] = await Promise.all([
                 Team.findById(teamId),
-                getVerifyUserIds(arrayUserIds)
+                getVerifyUserIds(userIds)
             ])
 
             if (verifyUserIds.length === 0) throw 'Can not find any user"'
@@ -197,7 +192,7 @@ module.exports.addMembers = async (req, res, next) => {
                 createNotifyJoinTeam({
                     message: `${signedInUser.name} invite you join team ${team.title}`,
                     teamId,
-                    userIds: arrayUserIds,
+                    userIds: verifyUserIds,
                     session
                 })
             ])
@@ -233,7 +228,7 @@ const getVerifyUserIds = (userIds) => {
     return new Promise((resole, reject) => {
         return User.find({
             _id: {
-                $in: userIds
+                $in: splitUserIds(userIds)
             }
         }, (error, users) => {
             if (error) {
@@ -279,7 +274,8 @@ const createNotifyJoinTeam = ({
     session
 }) => {
     let arrayNotifyCreate = []
-    for (let index = 0; index < userIds.length; index++) {
+    const userIdsLength = userIds.length
+    for (let index = 0; index < userIdsLength; index++) {
         arrayNotifyCreate.push({
             title: INVITE_JOIN_TEAM,
             message: message,
@@ -309,7 +305,7 @@ const isAllowed = ({ team, idCheck, userCheck }) => {
 }
 
 module.exports.agreeJoinTeam = async (req, res, next) => {
-    const teamId = req.params.teamId
+    const { teamId } = req.params
     const signedInUser = req.user
     try {
         await Promise.all([
@@ -345,7 +341,7 @@ module.exports.agreeJoinTeam = async (req, res, next) => {
 }
 
 module.exports.disAgreeJoinTeam = async (req, res, next) => {
-    const teamId = req.params.teamId
+    const { teamId } = req.params
     const signedInUser = req.user
     try {
         await Promise.all([
@@ -383,15 +379,13 @@ module.exports.disAgreeJoinTeam = async (req, res, next) => {
 }
 
 module.exports.removeMembers = async (req, res, next) => {
-    const userIds = req.body.userIds
+    const { userIds } = req.body
     const { teamId } = req.params
     try {
-        const arrayUserIds = splitUserIds(userIds)
-
         await Promise.all([
             User.updateMany({
                 _id: {
-                    $in: arrayUserIds
+                    $in: splitUserIds(userIds)
                 }
             }, {
                 $pull: {
@@ -463,7 +457,7 @@ module.exports.showMembers = async (req, res, next) => {
 }
 
 module.exports.changeUserRole = async (req, res, next) => {
-    const teamId = req.params.teamId
+    const { teamId } = req.params
     const { userId, role } = req.body
     try {
         const user = await User.findOneAndUpdate({

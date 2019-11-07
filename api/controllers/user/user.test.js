@@ -3,9 +3,9 @@ const expect = require('chai').expect
 const request = require('supertest')
 const app = require('../../../app')
 
-let admin  // Save token key after login
-let normalUser
-let listUsers // Use to update, delete this userId
+let admin = {}  // Save token key after login
+let normalUser = {}
+let listUsers = [] // Use to update, delete this userId
 
 describe('POST /users', () => {
     it('OK, create new user with email dung.van@gmail.com', done => {

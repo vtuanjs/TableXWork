@@ -10,7 +10,7 @@ const redisLife = parseInt(process.env.REDIS_QUERY_LIFE)
 module.exports.postCell = async (req, res, next) => {
     const { body, description, rowId, columnId } = req.body
 
-    const tableId = req.params.tableId
+    const { tableId } = req.params
     const signedInUser = req.user
     try {
         // Check row and column exists?
@@ -65,7 +65,7 @@ const addRefCellToUser = (cellId, user) => {
 }
 
 module.exports.getCells = async (req, res, next) => {
-    let fields = req.query.fields
+    let { fields } = req.query
     const { tableId } = req.params
     const { rowId, columnId } = req.query
 
@@ -94,7 +94,7 @@ module.exports.getCells = async (req, res, next) => {
 
 module.exports.getCell = async (req, res, next) => {
     const { cellId, tableId } = req.params
-    let fields = req.query.fields
+    let { fields } = req.query
 
     if (fields) {
         // Convert fields to array
@@ -180,20 +180,18 @@ module.exports.updateCell = async (req, res, next) => {
 }
 
 module.exports.addMembers = async (req, res, next) => {
-    const userIds = req.body.userIds
+    const { userIds } = req.body
     const { cellId, tableId } = req.params
     const session = await mongoose.startSession()
     try {
         await session.withTransaction(async () => {
-            const arrayUserIds = splitUserIds(userIds)
-
             // Check both cell and users exist?
             const [cell, verifyUserIds] = await Promise.all([
                 Cell.findOne({
                     _id: cellId,
                     table: tableId
                 }),
-                getVerifyUserIds(arrayUserIds)
+                getVerifyUserIds(splitUserIds(userIds))
             ])
 
             if (!cell) throw 'Can not find cell with this id'
@@ -252,10 +250,7 @@ const getVerifyUserIds = (userIds) => {
  * Save id cell to all members
  * @param {*} as cellId, userIds, session
  */
-const addRefCellToUsers = ({
-    cellId,
-    userIds
-}) => {
+const addRefCellToUsers = ({ cellId, userIds }) => {
     return User.updateMany({
         _id: {
             $in: userIds
@@ -274,11 +269,9 @@ const addRefCellToUsers = ({
 }
 
 module.exports.removeMembers = async (req, res, next) => {
-    const userIds = req.body.userIds
+    const { userIds } = req.body
     const { cellId, tableId } = req.params
     try {
-        const arrayUserIds = splitUserIds(userIds)
-
         const cell = await Cell.findOne({
             _id: cellId,
             table: tableId
@@ -289,7 +282,7 @@ module.exports.removeMembers = async (req, res, next) => {
         const raw = await User.updateMany(
             {
                 _id: {
-                    $in: arrayUserIds
+                    $in: splitUserIds(userIds)
                 }
             }, {
             $pull: {
@@ -369,7 +362,7 @@ module.exports.changeUserRole = async (req, res, next) => {
             table: tableId
         })
 
-        if (!cell){
+        if (!cell) {
             throw 'Can not find cell or it not in this table'
         }
 

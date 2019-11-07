@@ -117,7 +117,8 @@ module.exports = checkPermit = (...checks) => {
         let isAccess = false
         const user = req.user
 
-        for (let i = 0; i < checks.length; i++) {
+        const cheksLength = checks.length
+        for (let i = 0; i < cheksLength; i++) {
             const { model, roles } = checks[i]
 
             switch (model) {
