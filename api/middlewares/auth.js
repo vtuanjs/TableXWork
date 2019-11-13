@@ -45,7 +45,7 @@ module.exports.required = async (req, res, next) => {
             try {
                 const tokenFromRedis = await redis.get(refreshTokenKey)
 
-                if (tokenFromRedis === tokenKey){
+                if (tokenFromRedis){
                     // Generate new token
                     const decodedJson = await verifyToken(refreshTokenKey, refreshTokenSecret)
                     const user = await findUser(decodedJson._id)
@@ -62,13 +62,13 @@ module.exports.required = async (req, res, next) => {
                 }
             } catch (err) {
                 return res.status(403).json({
-                    message: `Token error: ` + err
+                    message: `Token error: ${err}. Please Logout and Login again`
                 })
             }
         }
 
         return res.status(403).json({
-            message: `Token error: ` + error
+            message: `Token error: ${error}. Please Logout and Login again`
         })
     }
 }
