@@ -106,6 +106,7 @@ const setTableStatus = ({ tableId, status, value }) => {
             (error, table) => {
                 if (error) return reject(reject)
                 if (table) {
+                    // Set new value of table to redis
                     redis.setex(tableId, redisLife, JSON.stringify(table))
                     resole(table)
                 }
