@@ -1,31 +1,34 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
-const ObjectId = Schema.Types.ObjectId
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+const ObjectId = Schema.Types.ObjectId;
 
-const NotifySchema = new Schema({
+const NotifySchema = new Schema(
+  {
     title: {
-        type: String,
-        required: true
+      type: String,
+      required: true
     },
     message: {
-        type: String,
-        default: " "
+      type: String,
+      default: " "
     },
     secretKey: {
-        type: Object
+      type: Object
     },
     isAction: {
-        type: Number,
-        default: 0
+      type: Number,
+      default: 0
     },
     user: {
-        type: ObjectId,
-        ref: 'User'
+      type: ObjectId,
+      ref: "User"
     }
-}, {
+  },
+  {
     timestamps: true,
     autoCreate: true
-})
+  }
+);
 
-const Notify = mongoose.model("Notify", NotifySchema)
-module.exports = Notify
+const Notify = mongoose.model("Notify", NotifySchema);
+module.exports = Notify;
